@@ -7,7 +7,9 @@ app.use(cors());
 app.use(express.json());
 
 let usuarios = [];
-
+app.get("/formulario", (req, res) => {
+    res.json(dados);
+});
 app.post("/formulario", (req, res) => {
     const { nome, email, telefone, nascimento, sexo } = req.body;
 
