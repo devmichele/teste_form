@@ -1,53 +1,60 @@
 const express = require('express');
 const axios = require('axios');
+const cors = require('cors');
 const app = express();
+
 app.use(express.json());
+app.use(cors()); // Permite que o GameMaker acesse a API sem bloqueios
 
-const GITHUB_TOKEN = 'SEU_TOKEN_AQUI'; // Gere um "Fine-grained token" no GitHub
-const REPO_OWNER = 'devmichele';
-const REPO_NAME = 'teste_form';
-const FILE_PATH = 'dados.json';
+// --- CONFIGURAÇÕES DO GITHUB ---
+const GITHUB_TOKEN = "SEU_TOKEN_AQUI"; // <--- COLOQUE SEU TOKEN DO GITHUB AQUI
+const REPO_OWNER = "devmichele";
+const REPO_NAME = "teste_form";
+const FILE_PATH = "dados.json";
 
-// Rota para salvar dados
+// ROTA PARA SALVAR (POST)
 app.post('/salvar', async (req, res) => {
     try {
-        // 1. Pega o arquivo atual para obter o 'sha' (necessário para atualizar no GitHub)
-        const getFile = await axios.get(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+        // 1. Pega o arquivo atual para obter o SHA (obrigatório pelo GitHub)
+        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        const getFile = await axios.get(url, {
             headers: { Authorization: `token ${GITHUB_TOKEN}` }
         });
 
         const sha = getFile.data.sha;
-        const contentBase64 = getFile.data.content;
-        const currentData = JSON.parse(Buffer.from(contentBase64, 'base64').toString());
+        const currentContent = JSON.parse(Buffer.from(getFile.data.content, 'base64').toString());
 
-        // 2. Adiciona o novo dado
-        currentData.usuarios.push(req.body);
+        // 2. Adiciona o novo dado enviado pelo GameMaker
+        currentContent.usuarios.push(req.body);
 
-        // 3. Envia de volta para o GitHub
-        const updatedContent = Buffer.from(JSON.stringify(currentData, null, 2)).toString('base64');
+        // 3. Converte para Base64 e envia de volta
+        const newContent = Buffer.from(JSON.stringify(currentContent, null, 2)).toString('base64');
         
-        await axios.put(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-            message: "Novo cadastro via GameMaker",
-            content: updatedContent,
+        await axios.put(url, {
+            message: "Novo registro via GameMaker",
+            content: newContent,
             sha: sha
         }, {
             headers: { Authorization: `token ${GITHUB_TOKEN}` }
         });
 
-        res.status(200).send({ mensagem: "Salvo com sucesso!" });
+        res.status(200).json({ status: "sucesso" });
     } catch (error) {
-        res.status(500).send(error.message);
+        console.error(error);
+        res.status(500).json({ error: "Erro ao salvar no GitHub" });
     }
 });
 
-// Rota para ler dados
+// ROTA PARA LER (GET)
 app.get('/ler', async (req, res) => {
     try {
-        const response = await axios.get(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`);
+        const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`;
+        const response = await axios.get(url);
         res.json(response.data);
     } catch (error) {
-        res.status(500).send("Erro ao ler dados");
+        res.status(500).json({ error: "Erro ao ler dados" });
     }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Servidor rodando!"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
