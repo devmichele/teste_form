@@ -1,44 +1,73 @@
+// ==========================
+// IMPORTS
+// ==========================
 const express = require("express");
 const cors = require("cors");
 
+// ==========================
+// APP
+// ==========================
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// =========================
-// BANCO TEMPORÁRIO (memória)
-// =========================
+// ==========================
+// "BANCO" EM MEMÓRIA
+// ==========================
 let dados = [];
 
-// =========================
-// POST - SALVAR
-// =========================
+// ==========================
+// ROTA TESTE
+// ==========================
+app.get("/", (req, res) => {
+  res.send("API rodando!");
+});
+
+// ==========================
+// SALVAR FORMULÁRIO
+// ==========================
 app.post("/formulario", (req, res) => {
-    const { nome, email, telefone, nascimento, sexo } = req.body;
+  const { nome, email, telefone, nascimento, sexo } = req.body;
 
-    if (!nome || !email || !telefone || !nascimento || !sexo) {
-        return res.status(400).json({ sucesso: false, erro: "Campos obrigatórios" });
-    }
-
-    dados.push({
-        nome,
-        email,
-        telefone,
-        nascimento,
-        sexo
+  // validação simples
+  if (!nome || !email) {
+    return res.status(400).json({
+      sucesso: false,
+      mensagem: "Preencha nome e email"
     });
+  }
 
-    res.json({ sucesso: true });
+  const novoCadastro = {
+    id: Date.now(),
+    nome,
+    email,
+    telefone,
+    nascimento,
+    sexo
+  };
+
+  dados.push(novoCadastro);
+
+  console.log("NOVO CADASTRO:", novoCadastro);
+
+  res.json({
+    sucesso: true,
+    mensagem: "Salvo com sucesso!"
+  });
 });
 
-// =========================
-// GET - LISTAR
-// =========================
-app.get("/formulario", (req, res) => {
-    res.json(dados);
+// ==========================
+// LISTAR DADOS (IMPORTANTE)
+// ==========================
+app.get("/listar", (req, res) => {
+  res.json(dados); // 🔥 ESSENCIAL (JSON PURO)
 });
 
-// =========================
-app.listen(3000, () => {
-    console.log("Servidor rodando na porta 3000");
+// ==========================
+// PORTA
+// ==========================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Servidor rodando na porta " + PORT);
 });
